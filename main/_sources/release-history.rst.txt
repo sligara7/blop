@@ -2,8 +2,209 @@
 Release History
 ===============
 
-v1.0.0b1 (2026-04-17)
----------------------
+v1.0.0 (2026-10-26)
+-------------------
+
+First release of Bluesky Adaptive built on the Blop v1.2.0 codebase
+(`bluesky/blop <https://github.com/bluesky/blop>`__). Entries below prefixed with "blop" are Blop releases.
+
+Breaking Changes
+................
+* The package is renamed: replace ``pip install blop[...]`` with ``pip install bluesky-adaptive[...]`` and
+  ``import blop`` with ``import bluesky_adaptive``.
+* Extra names (``ax``, ``queueserver``, ``scipy``, ``xopt``, ``all``, ``cpu``, ``dev``) and the run metadata keys
+  (``blop_suggestions``, ``blop_acquisition_order``, ``blop_correlation_uid``) are unchanged.
+* The bluesky-adaptive 0.x APIs (agents, adjudicators, server, and lock-step recommenders) are removed. Pin
+  ``bluesky-adaptive<1`` to keep them.
+
+blop v1.2.0 (2026-10-23)
+------------------------
+
+This is the final feature release of Blop. Development continues in
+`bluesky-adaptive <https://github.com/bluesky/bluesky-adaptive>`_ 1.0.
+
+Features
+........
+* **Single-run optimization (experimental)**: ``blop.plans.optimize_in_run`` runs the optimization
+  loop inside one Bluesky run, using ``blop.plan_stubs.list_scan_in_run`` for acquisition
+  (`#353 <https://github.com/bluesky/blop/pull/353>`_).
+* ``optimize`` and ``Agent.optimize`` accept ``iterations=None`` to run until the optimizer's
+  stopping criterion is met (`#364 <https://github.com/bluesky/blop/pull/364>`_).
+* ``default_acquire`` records suggestion IDs in scan order as ``"blop_acquisition_order"`` start
+  metadata. Use it to match acquired data to suggestions
+  (`#365 <https://github.com/bluesky/blop/pull/365>`_).
+* ``optimize`` checkpoints after each iteration, so a deferred pause stops between iterations
+  (`#378 <https://github.com/bluesky/blop/pull/378>`_).
+
+Breaking Changes
+................
+* Optimization runs record one event per suggestion, with an ``iteration`` field, instead of one
+  event per iteration with array values. ``read_step`` no longer takes ``n_points``
+  (`#376 <https://github.com/bluesky/blop/pull/376>`_).
+
+Compatibility Notes
+...................
+* ``EvaluationFunction`` and ``AcquisitionPlan`` are generic over the uid type
+  (`#370 <https://github.com/bluesky/blop/pull/370>`_).
+* Suggestion ``"_id"`` values must be unique and hashable, and evaluation functions must return
+  exactly one outcome per suggestion ID (`#353 <https://github.com/bluesky/blop/pull/353>`_).
+
+Bug Fixes
+.........
+* String fields such as suggestion IDs are no longer truncated to the length of their first value
+  (`#363 <https://github.com/bluesky/blop/pull/363>`_).
+* ``default_acquire`` accepts ``md``, which the Queue Server runner requires
+  (`#359 <https://github.com/bluesky/blop/pull/359>`_).
+
+Dependency Changes
+..................
+* New ``scipy`` extra, included in ``all`` (`#374 <https://github.com/bluesky/blop/pull/374>`_).
+
+`Full Changelog <https://github.com/bluesky/blop/compare/v1.1.0...v1.2.0>`__
+
+blop v1.1.0 (2026-08-26)
+------------------------
+
+Features
+........
+* **SciPy backend**: The new ``blop.scipy`` namespace provides Bluesky-compatible
+  wrappers for SciPy's local minimization, SHGO, and dual annealing routines
+  (`#339 <https://github.com/bluesky/blop/pull/339>`_).
+* **Global stopping criteria**: The new ``SupportsStoppingCriteria`` protocol allows an
+  optimizer to stop an optimization run early. ``Agent`` and ``AxOptimizer`` now accept
+  an Ax global stopping strategy directly
+  (`#337 <https://github.com/bluesky/blop/pull/337>`_,
+  `#338 <https://github.com/bluesky/blop/pull/338>`_,
+  `#341 <https://github.com/bluesky/blop/pull/341>`_).
+* **Queueserver checkpointing**: ``QueueserverAgent.run()`` and
+  ``QueueserverOptimizationRunner.run()`` now accept ``checkpoint_interval``. The checkpoint
+  path can also be set on an existing ``Agent`` or ``AxOptimizer``
+  (`#327 <https://github.com/bluesky/blop/pull/327>`_,
+  `#328 <https://github.com/bluesky/blop/pull/328>`_).
+* **Flexible string actuators**: Ax DOFs backed by a queueserver device string can now specify
+  a separate ``name``, supporting components whose queueserver path and device name differ
+  (`#346 <https://github.com/bluesky/blop/pull/346>`_).
+* **Generalized XRT simulations**: ``blop-sim`` can now construct arbitrary XRT beamlines from
+  XML descriptions and infer Bluesky-compatible motors and detectors
+  (`#317 <https://github.com/bluesky/blop/pull/317>`_).
+
+Compatibility Notes
+...................
+* **Optimization event identifier renamed**: The ``bluesky_uid`` field in optimization event
+  documents is now ``acquisition_uid``. Acquisition plans may return any hashable identifier,
+  rather than only a Bluesky run UID
+  (`#350 <https://github.com/bluesky/blop/pull/350>`_).
+* **Protocol signatures generalized**: Core protocol methods now use ``Sequence`` and
+  ``Mapping`` instead of concrete ``list`` and ``dict`` types, and evaluation functions receive
+  a ``Hashable`` acquisition identifier. Runtime behavior remains compatible, but custom
+  protocol implementations may need their annotations updated to satisfy static type checkers
+  (`#350 <https://github.com/bluesky/blop/pull/350>`_).
+
+Bug Fixes
+.........
+* Evaluation failures are now registered with fault-aware optimizers before the original
+  exception is re-raised, preventing failed suggestions from remaining pending
+  (`#355 <https://github.com/bluesky/blop/pull/355>`_).
+* Suggestion routing now guarantees that every suggested point is visited exactly once, fixing
+  edge cases that produced cycles and duplicate visits
+  (`#356 <https://github.com/bluesky/blop/pull/356>`_).
+* Queueserver submission now uses the manager's native autostart API and relies on its
+  allowed-device and allowed-plan validation, allowing remote errors to propagate correctly
+  (`#326 <https://github.com/bluesky/blop/pull/326>`_,
+  `#344 <https://github.com/bluesky/blop/pull/344>`_).
+
+Documentation and Development
+.............................
+* Added a how-to guide for configuring built-in and custom Ax stopping conditions
+  (`#342 <https://github.com/bluesky/blop/pull/342>`_).
+* Added a contributor guide and documented the project's review and merge policy
+  (`#331 <https://github.com/bluesky/blop/pull/331>`_).
+* Added a dedicated integration test suite and CI workflow for complete optimization runs
+  (`#349 <https://github.com/bluesky/blop/pull/349>`_).
+
+`Full Changelog <https://github.com/bluesky/blop/compare/v1.0.0...v1.1.0>`__
+
+blop v1.0.0 (2026-07-16)
+------------------------
+
+Features
+........
+* **Xopt backend**: New optional ``blop.xopt.XoptOptimizer`` backend, installable via the
+  ``blop[xopt]`` extra, implementing the ``Optimizer``, ``Checkpointable``,
+  ``CanRegisterSuggestions``, and ``TrialFaultAware`` protocols on top of
+  `Xopt <https://xopt.xopt.org>`_ (`#318 <https://github.com/bluesky/blop/pull/318>`_).
+* **Scalarized objectives in `Agent`**: ``Agent`` can now be configured with
+  ``ScalarizedObjective`` for weighted multi-objective optimization
+  (`#284 <https://github.com/bluesky/blop/pull/284>`_).
+* **Best point(s) navigation**: New ``blop.plan_stubs.navigate_to_best`` plan stub that moves
+  actuators to the best point(s) found so far, backed by ``Optimizer.get_best_points()``
+  (`#293 <https://github.com/bluesky/blop/pull/293>`_).
+* **Queueserver plan keyword arguments**: ``QueueserverOptimizationProblem`` now accepts
+  additional keyword arguments to pass through to the acquisition plan
+  (`#306 <https://github.com/bluesky/blop/pull/306>`_).
+* **More reliable queueserver runner**: The queueserver runner now starts its listener
+  automatically on initialization (`#316 <https://github.com/bluesky/blop/pull/316>`_), tracks
+  its state with ``concurrent.futures.Future`` for more robust status reporting
+  (`#305 <https://github.com/bluesky/blop/pull/305>`_), and ``QueueserverAgent`` now exposes
+  additional runner properties (``actuators``, ``sensors``, ``acquisition_plan``,
+  ``current_iteration``) and a ``stop()`` method directly
+  (`#291 <https://github.com/bluesky/blop/pull/291>`_).
+
+Breaking Changes
+................
+* **`QueueserverClient` now takes a `RemoteDispatcher`**: Replaces the previous raw ZMQ address
+  argument, giving users full control over how documents are dispatched from the queueserver
+  (`#308 <https://github.com/bluesky/blop/pull/308>`_).
+* **`QueueserverAgent` moved to its own module**: ``QueueserverAgent`` now lives in
+  ``blop.ax.queueserver_agent`` instead of ``blop.ax.agent``. The ``queueserver`` optional
+  extra was also renamed from ``qs`` to ``queueserver``
+  (`#321 <https://github.com/bluesky/blop/pull/321>`_).
+
+Bug Fixes
+.........
+* Made ``ChoiceDOF`` hashable, fixing a bug when reconfiguring or fixing ``ChoiceDOF`` parameters
+  (`#301 <https://github.com/bluesky/blop/pull/301>`_).
+* Fixed stream filtering in the optimization logging callback
+  (`#302 <https://github.com/bluesky/blop/pull/302>`_).
+* Fixed the queueserver runner calling ``stop_listener`` from the wrong thread, and used the
+  correct ``run_start`` key on the stop document
+  (`#291 <https://github.com/bluesky/blop/pull/291>`_).
+* Queueserver runner now prevents concurrent/parallel runs
+  (`#296 <https://github.com/bluesky/blop/pull/296>`_).
+* Fixed the import path for ``ContourPlot`` (`#281 <https://github.com/bluesky/blop/pull/281>`_).
+
+Dependency Changes
+..................
+* Reworked and clarified the optional-dependency structure, adding an ``all`` extra and
+  renaming the ``qs`` extra to ``queueserver``
+  (`#321 <https://github.com/bluesky/blop/pull/321>`_).
+
+Documentation
+.............
+* **Queueserver integration marked experimental**: Clearly documented across module
+  docstrings, the tutorial, and the API reference that the queueserver integration is
+  experimental and subject to change (`#309 <https://github.com/bluesky/blop/pull/309>`_).
+* New tutorial for running Blop optimization against a remote Bluesky Queueserver
+  (`#292 <https://github.com/bluesky/blop/pull/292>`_).
+* Improvements to the XRT KB mirror tutorial (`#311 <https://github.com/bluesky/blop/pull/311>`_)
+  and the simple experiment tutorial (`#303 <https://github.com/bluesky/blop/pull/303>`_), plus a
+  general documentation maintenance pass
+  (`#294 <https://github.com/bluesky/blop/pull/294>`_).
+* New explanation content describing which components of an optimization workflow
+  (evaluation functions, acquisition plans) users are responsible for implementing
+  (`#323 <https://github.com/bluesky/blop/pull/323>`_).
+* Website redesign, including a version-switcher dropdown in the docs header
+  (`#269 <https://github.com/bluesky/blop/pull/269>`_,
+  `#277 <https://github.com/bluesky/blop/pull/277>`_,
+  `#279 <https://github.com/bluesky/blop/pull/279>`_,
+  `#287 <https://github.com/bluesky/blop/pull/287>`_,
+  `#288 <https://github.com/bluesky/blop/pull/288>`_).
+* Various consistency improvements to the documentation.
+
+`Full Changelog <https://github.com/bluesky/blop/compare/v1.0.0b1...v1.0.0>`__
+
+blop v1.0.0b1 (2026-04-17)
+--------------------------
 
 Features
 ........
@@ -62,8 +263,8 @@ Documentation
 
 `Full Changelog <https://github.com/NSLS-II/blop/compare/v0.9.0...v1.0.0b1>`__
 
-v0.9.0 (2025-12-08)
--------------------
+blop v0.9.0 (2025-12-08)
+------------------------
 
 What's Changed
 ..............
@@ -87,8 +288,8 @@ What's Changed
 
 `Full Changelog <https://github.com/NSLS-II/blop/compare/v0.8.1...v0.9.0>`__
 
-v0.8.1 (2025-11-06)
--------------------
+blop v0.8.1 (2025-11-06)
+------------------------
 
 What's Changed
 ..............
@@ -104,8 +305,8 @@ What's Changed
 
 `Full Changelog <https://github.com/NSLS-II/blop/compare/v0.8.0...v0.8.1>`__
 
-v0.8.0 (2025-10-13)
--------------------
+blop v0.8.0 (2025-10-13)
+------------------------
 
 What's Changed
 ..............
@@ -132,8 +333,8 @@ New Contributors
 
 `Full Changelog <https://github.com/NSLS-II/blop/compare/v0.7.5...v0.8.0>`__
 
-v0.7.5 (2025-06-18)
--------------------
+blop v0.7.5 (2025-06-18)
+------------------------
 
 What's Changed
 ..............
@@ -151,13 +352,13 @@ New Contributors
 
 `Full Changelog <https://github.com/NSLS-II/blop/compare/v0.7.4...v0.7.5>`__
 
-v0.7.4 (2025-03-04)
--------------------
+blop v0.7.4 (2025-03-04)
+------------------------
 * Add missing files for documentation
 * Fix trigger condition for releases on PyPI and documentation
 
-v0.7.3 (2025-03-04)
--------------------
+blop v0.7.3 (2025-03-04)
+------------------------
 What's Changed
 ..............
 * Fix documentation CI error by `@jennmald <https://github.com/jennmald>`_ in https://github.com/NSLS-II/blop/pull/84
@@ -176,35 +377,35 @@ New Contributors
 
 `Full Changelog <https://github.com/NSLS-II/blop/compare/v0.7.2...v0.7.3>`__
 
-v0.7.2 (2025-01-31)
--------------------
+blop v0.7.2 (2025-01-31)
+------------------------
 - Renamed package in PyPI to `blop <https://pypi.org/project/blop/>`_.
 - `bloptools <https://pypi.org/project/bloptools/>`_ is still avaliable on PyPI.
 
-v0.7.1 (2024-09-26)
--------------------
+blop v0.7.1 (2024-09-26)
+------------------------
 - Add simulated hardware.
 - Added a method to prune bad data.
 
-v0.7.0 (2024-05-13)
--------------------
+blop v0.7.0 (2024-05-13)
+------------------------
 - Added functionality for Pareto optimization.
 - Support for discrete degrees of freedom.
 
-v0.6.0 (2024-02-01)
--------------------
+blop v0.6.0 (2024-02-01)
+------------------------
 - More sophisticated targeting capabilities for different objectives.
 - More user-friendly agent controls.
 
-v0.5.0 (2023-11-09)
--------------------
+blop v0.5.0 (2023-11-09)
+------------------------
 - Added hypervolume acquisition and constraints.
 - Better specification of latent dimensions.
 - Implemented Monte Carlo acquisition functions.
 - Added classes for DOFs and objectives.
 
-v0.4.0 (2023-08-11)
--------------------
+blop v0.4.0 (2023-08-11)
+------------------------
 
 - Easier-to-use syntax when building the agent.
 - Modular and stateful agent design for better usability.
@@ -215,24 +416,24 @@ v0.4.0 (2023-08-11)
 - Updated the Sphinx documentation theme to `furo <https://github.com/pradyunsg/furo>`_.
 
 
-v0.3.0 (2023-06-17)
--------------------
+blop v0.3.0 (2023-06-17)
+------------------------
 
 - Implemented multi-task optimization.
 - Simplified the syntax on initializing the agent.
 - Resolved issues discovered at NSLS-II ISS.
 
 
-v0.2.0 (2023-04-25)
--------------------
+blop v0.2.0 (2023-04-25)
+------------------------
 
 - Rebased the Bayesian optimization models to be compatible with ``botorch`` code.
 - Optimization objectives can be customized with ``experiment`` modules.
 - Added optimization test functions for quicker testing and development.
 
 
-v0.1.0 (2023-03-10)
--------------------
+blop v0.1.0 (2023-03-10)
+------------------------
 
 - Changed from using ``SafeConfigParser`` to ``ConfigParser``.
 - Implemented the initial version of the GP optimizer.
@@ -240,14 +441,14 @@ v0.1.0 (2023-03-10)
 - Added tests to the CI.
 
 
-v0.0.2 (2021-05-14)
--------------------
+blop v0.0.2 (2021-05-14)
+------------------------
 
 Fixed ``_run_flyers()`` for sirepo optimization.
 
 
-v0.0.1 - Initial Release (2020-09-01)
--------------------------------------
+blop v0.0.1 - Initial Release (2020-09-01)
+------------------------------------------
 
 Initial release of the Beamline Optimization library.
 

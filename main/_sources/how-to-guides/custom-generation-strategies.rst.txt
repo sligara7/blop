@@ -90,14 +90,16 @@
 Using custom generation strategies
 ==================================
 
-This guide will show you how to use custom generation strategies with BoTorch, Blop, and Ax.
+This guide will show you how to use custom generation strategies with BoTorch, Bluesky Adaptive, and Ax.
 
 Configure an agent
 ------------------
 
 .. testcode::
 
-    from blop.ax import Agent, RangeDOF, Objective
+    from collections.abc import Mapping, Sequence
+
+    from bluesky_adaptive.ax import Agent, RangeDOF, Objective
 
     dofs = [
         RangeDOF(actuator=movable1, bounds=(-5.0, 5.0), parameter_type="float"),
@@ -108,7 +110,7 @@ Configure an agent
         Objective(name="objective1", minimize=False),
     ]
 
-    def evaluation_function(uid: str, suggestions: list[dict]) -> list[dict]:
+    def evaluation_function(uid: str, suggestions: Sequence[Mapping]) -> Sequence[Mapping]:
         """Replace this with your own evaluation function."""
         outcomes = []
         for suggestion in suggestions:
@@ -148,7 +150,7 @@ For more information on generation strategies, see the `Ax documentation <https:
     from ax.generators.torch.botorch_modular.utils import ModelConfig
     from botorch.acquisition.logei import qLogNoisyExpectedImprovement
 
-    from blop.bayesian.models import LatentGP
+    from bluesky_adaptive.bayesian.models import LatentGP
 
 
     generation_strategy = GenerationStrategy(

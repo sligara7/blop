@@ -99,7 +99,9 @@ Here we configure an agent with three DOFs and two objectives. The second object
 
 .. testcode::
 
-    from blop.ax import Agent, RangeDOF, Objective, OutcomeConstraint
+    from collections.abc import Mapping, Sequence
+
+    from bluesky_adaptive.ax import Agent, RangeDOF, Objective, OutcomeConstraint
 
     dofs = [
         RangeDOF(actuator=movable1, bounds=(-5.0, 5.0), parameter_type="float"),
@@ -114,7 +116,7 @@ Here we configure an agent with three DOFs and two objectives. The second object
 
     outcome_constraints = [OutcomeConstraint("x >= baseline", x=objectives[1])]
 
-    def evaluation_function(uid: str, suggestions: list[dict]) -> list[dict]:
+    def evaluation_function(uid: str, suggestions: Sequence[Mapping]) -> Sequence[Mapping]:
         """Replace this with your own evaluation function."""
         outcomes = []
         for suggestion in suggestions:
@@ -138,7 +140,7 @@ Here we configure an agent with three DOFs and two objectives. The second object
 Acquire a baseline reading
 --------------------------
 
-To acquire a baseline reading, simply call the ``acquire_baseline`` method. Optionally, you can provide a parameterization which moves the DOFs to specific values prior to acquiring the baseline reading.
+To acquire a baseline reading, simply call the ``acquire_baseline`` method. Optionally, you can use the ``parameterization`` argument, which moves the DOFs to specific values prior to acquiring the baseline reading.
 
 .. testcode::
 
